@@ -1,0 +1,311 @@
+// ACLARACIÓN: El fotodiodo sensé la temperatura que pasaba, en las dos primeras vueltas daba 0 y después 1023, por eso la lógica no funciona, pero en sí la función que maneja si hay luz o no
+// está bien redactada y aplicada.
+
+
+// C++ code
+//
+
+#define A 13
+#define B 12
+#define C 11
+#define D 10
+#define E 9
+#define F 8
+#define G 7
+#define RESETEAR A2
+#define SUMA A3
+#define RESTA A4
+#define UNIDAD A1
+#define DECENA A0
+#define SWITCH A5
+#define FOTODIODO 0
+
+// Defino los pines con nombres adecuados para su utilización.
+
+int contador = 0;
+int sumar = 1;
+int sumarAnterior = 1;
+int restar = 1;
+int restarAnterior = 1;
+int resetear = 1;
+int resetearAnterior = 1;
+int primos[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+int contadorPrimo = 0;
+
+// Declaro variables globales que serán útiles en otras secciones del código.
+
+void setup()
+{
+  pinMode(A, OUTPUT);
+  pinMode(B, OUTPUT);
+  pinMode(C, OUTPUT);
+  pinMode(D, OUTPUT);
+  pinMode(E, OUTPUT);
+  pinMode(F, OUTPUT);
+  pinMode(G, OUTPUT);
+  pinMode(SUMA, INPUT_PULLUP);
+  pinMode(RESTA, INPUT_PULLUP);
+  pinMode(RESETEAR, INPUT_PULLUP);
+  pinMode(UNIDAD, OUTPUT);
+  pinMode(DECENA, OUTPUT);
+  pinMode(SWITCH, INPUT_PULLUP);
+  pinMode(FOTODIODO, INPUT);
+  Serial.begin(9600);
+  // Defino los pines como output o input según corresponda.
+}
+
+void loop()
+{
+  int presionada = teclaPresionada();
+  int decena = contador / 10; // El contador / 10 para mostrar decena.
+  int unidad = contador % 10; // El resto de la división del contador por 10 para mostrar la unidad.
+  int onoff = digitalRead(SWITCH); // Lee el estado de SWITCH.
+  int primoActual = primos[contadorPrimo]; // Número primo que corresponde a la posición en la matriz determinado por el contador de primos.
+  int unidadPrimo = primoActual / 10; // Mostrará la unidad del número primo.
+  int decenaPrimo = primoActual % 10; // Mostrará la decena del número primo.
+    if(hayLuz() == true)
+    {
+      // onoff corresponde al switch, en caso de estar en LOW...
+      // mostrará la suma de 1 a 99.
+      // en caso de estar en HIGH mostrará los números primos.
+      if (onoff == LOW)
+      {
+        digitalWrite(UNIDAD, HIGH); // Apaga la unidad.
+        digitalWrite(DECENA, LOW); // Prende la decena.
+        imprimirNumero(decena); // Muestra decena. 
+        delay(50);
+
+        digitalWrite(UNIDAD, LOW); // Prende la unidad.
+        digitalWrite(DECENA, HIGH); // Apaga la decena.
+        imprimirNumero(unidad); // Muestra unidad
+        delay(50);
+
+        if (presionada == SUMA)
+        {
+          // Suma al contador 1 si éste es mayor a 0 y menor a 100.
+          // En caso de ser mayor a 100 asigna 0 al contador.
+          if (contador >= 0 && contador < 100)
+          {
+            contador++;
+          }
+          else
+          {
+            contador = 0;
+          }
+        }
+        if (presionada == RESTA)
+        {
+          // Si es menor a 100 y mayor a uno resta al contador.
+          // Si no, asigna 99 al contador. 
+          if (contador >= 1 && contador < 100) 
+          { 
+            contador--;
+          }
+          else if (contador == 0) 
+          {
+            contador = 99;
+          }
+        }
+        if (presionada == RESETEAR)
+        {
+          contador = 0;
+        }
+      }
+      else if (onoff == HIGH)
+      {
+        digitalWrite(UNIDAD, HIGH); // Apaga el display unidad.
+        digitalWrite(DECENA, LOW); // Prende el display decena.
+        imprimirNumero(unidadPrimo); // Muestra unidad de los primos.
+        delay(50);
+
+        digitalWrite(UNIDAD, LOW); // Prende el display unidad.
+        digitalWrite(DECENA, HIGH); // Apaga el display decena.
+        imprimirNumero(decenaPrimo); // Muestra decena de los primos.
+        delay(50);
+
+        if (presionada == SUMA) 
+        {
+          // Suma 1 al contador de primos si es menor que 25.
+          if (contadorPrimo < 25) 
+          {
+            contadorPrimo++;
+          } else {
+            contadorPrimo = 0; // Vuelve al principio de la matriz.
+          }
+        }
+        if (presionada == RESTA) 
+        {
+          // Resta 1 al contador de primos si es mayor que 0.
+          if (contadorPrimo > 0) {
+            contadorPrimo--;
+          } else {
+            contadorPrimo = 25; // Se vuelve al final de la matriz.
+          }
+        }
+        if (presionada == RESETEAR) 
+        {
+          contadorPrimo = 0; // Reinicia el contador de primos.
+        }
+      }
+    }
+  else if(hayLuz() == false)
+  {
+    digitalWrite(UNIDAD, HIGH); // Apaga el display unidad.
+    digitalWrite(DECENA, HIGH); // Apaga el display unidad.
+    delay(50);
+    digitalWrite(UNIDAD, HIGH); // Prende el display decena.
+    digitalWrite(DECENA, HIGH); // Apaga el display unidad.
+    delay(50);
+  }
+}
+
+int teclaPresionada(void)
+{ 
+  sumar = digitalRead(SUMA); // Lee entrada de pin SUMA.
+  restar = digitalRead(RESTA); // Lee entrada de pin RESTA.
+  resetear = digitalRead(RESETEAR); // Lee entrada de pin RESETEAR.
+
+  if (sumar == 1) // Si no estaba presionado, guarda 1.
+    sumarAnterior = 1;
+  if (restar == 1)
+    restarAnterior = 1;
+  if (resetear == 1)
+    resetearAnterior = 1;
+    // Si está presionado y antes no lo estaba, guarda 0.
+  if (sumar == 0 && sumar != sumarAnterior)
+  {
+    sumarAnterior = 0;
+    return SUMA;
+  }
+  if (restar == 0 && restar != restarAnterior)
+  {
+    restarAnterior = 0;
+    return RESTA;
+  }
+  if (resetear == 0 && resetear != resetearAnterior)
+  {
+    resetearAnterior = 0;
+    return RESETEAR;
+  }
+  return 0;
+}
+
+bool hayLuz()
+{
+  int estadoFotodiodo = analogRead(FOTODIODO);
+  int umbralLuz = 500;
+  bool retorno = false;
+  
+  if(estadoFotodiodo > umbralLuz)
+  {
+    retorno = true;
+  }
+  return retorno;
+}
+
+// Prende los segmentos del led según la forma del número.
+void imprimirNumero(int numero)
+{
+  switch(numero)
+  {
+    case 0:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, HIGH);
+      digitalWrite(E, HIGH);
+      digitalWrite(F, HIGH);
+      digitalWrite(G, LOW);
+      break;
+
+    case 1:
+      digitalWrite(A, LOW);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, LOW);
+      digitalWrite(E, LOW);
+      digitalWrite(F, LOW);
+      digitalWrite(G, LOW);
+      break;
+
+    case 2:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, LOW);
+      digitalWrite(D, HIGH);
+      digitalWrite(E, HIGH);
+      digitalWrite(F, LOW);
+      digitalWrite(G, HIGH);
+      break;
+
+    case 3:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, HIGH);
+      digitalWrite(E, LOW);
+      digitalWrite(F, LOW);
+      digitalWrite(G, HIGH);
+      break;
+
+    case 4:
+      digitalWrite(A, LOW);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, LOW);
+      digitalWrite(E, LOW);
+      digitalWrite(F, HIGH);
+      digitalWrite(G, HIGH);
+      break;
+
+    case 5:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, LOW);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, HIGH);
+      digitalWrite(E, LOW);
+      digitalWrite(F, HIGH);
+      digitalWrite(G, HIGH);
+      break;
+
+    case 6:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, LOW);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, HIGH);
+      digitalWrite(E, HIGH);
+      digitalWrite(F, HIGH);
+      digitalWrite(G, HIGH);
+      break;
+
+    case 7:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, LOW);
+      digitalWrite(E, LOW);
+      digitalWrite(F, LOW);
+      digitalWrite(G, LOW);
+      break;
+
+    case 8:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, HIGH);
+      digitalWrite(E, HIGH);
+      digitalWrite(F, HIGH);
+      digitalWrite(G, HIGH);
+      break;
+
+    case 9:
+      digitalWrite(A, HIGH);
+      digitalWrite(B, HIGH);
+      digitalWrite(C, HIGH);
+      digitalWrite(D, LOW);
+      digitalWrite(E, LOW);
+      digitalWrite(F, HIGH);
+      digitalWrite(G, HIGH);
+      break;
+  }
+}
